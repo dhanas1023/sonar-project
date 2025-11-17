@@ -19,8 +19,26 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: SonarQube Scan
+      - name: Run SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      # Generate a reusable report
+      - name: Generate Scan Report
+        run: |
+          echo "SonarQube Scan Report" > scan-report-${{ github.run_id }}.txt
+          echo "Repository: $GITHUB_REPOSITORY" >> scan-report-${{ github.run_id }}.txt
+          echo "Run ID: $GITHUB_RUN_ID" >> scan-report-${{ github.run_id }}.txt
+          echo "Timestamp: $(date)" >> scan-report-${{ github.run_id }}.txt
+          echo "Status: Scan Completed Successfully" >> scan-report-${{ github.run_id }}.txt
+
+      # Upload the report to S3 bucket
+      - name: Upload Report to S3
+        run: |
+          aws s3 cp scan-report-${{ github.run_id }}.txt s3://${{ secrets.S3_BUCKET_NAME }}/reports/
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
