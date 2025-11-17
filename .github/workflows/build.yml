@@ -25,7 +25,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-      # Generate a reusable report
+      # Generate a reusable repor
       - name: Generate Scan Report
         run: |
           echo "SonarQube Scan Report" > scan-report-${{ github.run_id }}.txt
