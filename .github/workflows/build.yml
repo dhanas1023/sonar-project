@@ -25,22 +25,24 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
- # Fetch SonarQube analysis results using the SonarQube API
       - name: Generate Full SonarQube Report
         run: |
-          PROJECT_KEY="SonarQubeScanning"
-          API_URL="${{ secrets.SONAR_HOST_URL }}/api/measures/component?component=${PROJECT_KEY}&metricKeys=bugs,vulnerabilities,code_smells,security_hotspots,duplicated_lines_density,ncloc,reliability_rating,security_rating,sqale_rating"
-          
-          echo "Fetching results from: $API_URL"
-          
-          curl -u "${{ secrets.SONAR_TOKEN }}:" "$API_URL" -o sonar-report.json
-          
-          echo "----- SonarQube Report -----" > sonar-report.txt
-          echo "Report for project: $PROJECT_KEY" >> sonar-report.txt
-          echo "Generated on: $(date)" >> sonar-report.txt
-          echo "" >> sonar-report.txt
-          
-          jq '.component.measures[] | "\(.metric): \(.value)"' sonar-report.json >> sonar-report.txt
+            PROJECT_KEY="${{ secrets.SONAR_PROJECT_KEY }}"
+            
+            METRICS="bugs,vulnerabilities,code_smells,ncloc,reliability_rating,security_rating,sqale_rating"
+            
+            API_URL="${{ secrets.SONAR_HOST_URL }}/api/measures/component?component=${PROJECT_KEY}&metricKeys=${METRICS}"
+        
+            echo "Fetching results from: $API_URL"
+        
+            curl -u "${{ secrets.SONAR_TOKEN }}:" "$API_URL" -o sonar-report.json
+        
+            echo "----- SonarQube Report -----" > sonar-report.txt
+            echo "Project: $PROJECT_KEY" >> sonar-report.txt
+            echo "Generated on: $(date)" >> sonar-report.txt
+            echo "" >> sonar-report.txt
+        
+            jq -r '.component.measures[] | "\(.metric): \(.value)"' sonar-report.json >> sonar-report.txt
 
       # Generate a reusable report
       #- name: Generate Scan Report
