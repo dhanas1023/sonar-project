@@ -11,20 +11,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      # -----------------------------
+      # 1. Checkout Repository
+      # -----------------------------
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # -----------------------------
+      # 2. Setup Python
+      # -----------------------------
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
+      # -----------------------------
+      # 3. Run SonarQube Scan
+      # -----------------------------
       - name: Run SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
+      # -----------------------------
+      # 4. Generate Full Sonar Report
+      # -----------------------------
       - name: Generate Full SonarQube Report
         env:
           PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
@@ -32,33 +45,27 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
           echo "Project key from env: $PROJECT_KEY"
-      
-          METRICS="bugs"
-          
+
+          # ALL IMPORTANT METRICS
+          METRICS="bugs,vulnerabilities,code_smells,ncloc,security_hotspots,duplicated_lines_density,reliability_rating,security_rating,sqale_rating"
+
           API_URL="${SONAR_HOST_URL}/api/measures/component?component=${PROJECT_KEY}&metricKeys=${METRICS}"
-      
+
           echo "Fetching results from: $API_URL"
-      
+
           curl -u "${SONAR_TOKEN}:" "$API_URL" -o sonar-report.json
-      
+
           echo "----- SonarQube Report -----" > sonar-report.txt
           echo "Project: $PROJECT_KEY" >> sonar-report.txt
           echo "Generated on: $(date)" >> sonar-report.txt
           echo "" >> sonar-report.txt
-      
-          # NULL-safe jq: avoid "Cannot iterate over null"
+
+          # Null-safe metric extraction
           jq -r '.component.measures // [] | .[] | "\(.metric): \(.value)"' sonar-report.json >> sonar-report.txt
 
-      # Generate a reusable report
-      #- name: Generate Scan Report
-       # run: |
-        #  echo "SonarQube Scan Report" > scan-report-${{ github.run_id }}.txt
-         # echo "Repository: $GITHUB_REPOSITORY" >> scan-report-${{ github.run_id }}.txt
-          #echo "Run ID: $GITHUB_RUN_ID" >> scan-report-${{ github.run_id }}.txt
-          #echo "Timestamp: $(date)" >> scan-report-${{ github.run_id }}.txt
-          #echo "Status: Scan Completed Successfully" >> scan-report-${{ github.run_id }}.txt
-
-      # Upload the report to S3 bucket
+      # -----------------------------
+      # 5. Upload to S3
+      # -----------------------------
       - name: Upload Report to S3
         run: |
           aws s3 cp sonar-report.txt s3://${{ secrets.S3_BUCKET_NAME }}/reports/sonar-report-${{ github.run_id }}.txt
