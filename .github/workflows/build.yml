@@ -35,9 +35,6 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-      # -----------------------------
-      # 4. Generate Full Sonar Report
-      # -----------------------------
       - name: Generate Full SonarQube Report
         env:
           PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
@@ -45,23 +42,27 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
           echo "Project key from env: $PROJECT_KEY"
-
-          # ALL IMPORTANT METRICS
-          METRICS="bugs,vulnerabilities,code_smells,ncloc,security_hotspots,duplicated_lines_density,reliability_rating,security_rating,sqale_rating"
-
+      
+          # Metrics you want in the report
+          METRICS="bugs,vulnerabilities,code_smells,security_hotspots,coverage,duplicated_lines_density"
+      
           API_URL="${SONAR_HOST_URL}/api/measures/component?component=${PROJECT_KEY}&metricKeys=${METRICS}"
-
+      
           echo "Fetching results from: $API_URL"
-
+      
           curl -u "${SONAR_TOKEN}:" "$API_URL" -o sonar-report.json
-
+      
+          echo "----- RAW API RESPONSE -----"
+          cat sonar-report.json
+          echo "----------------------------"
+      
           echo "----- SonarQube Report -----" > sonar-report.txt
           echo "Project: $PROJECT_KEY" >> sonar-report.txt
           echo "Generated on: $(date)" >> sonar-report.txt
           echo "" >> sonar-report.txt
-
-          # Null-safe metric extraction
-          jq -r '.component.measures // [] | .[] | "\(.metric): \(.value)"' sonar-report.json >> sonar-report.txt
+      
+          # Safe extract
+          jq -r '.component.measures[] | "\(.metric): \(.value)"' sonar-report.json >> sonar-report.txt
 
       # -----------------------------
       # 5. Upload to S3
