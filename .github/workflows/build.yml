@@ -41,26 +41,25 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
           echo "Project key from env: $PROJECT_KEY"
-
-          # Metrics you want in the report
-          METRICS="bugs,vulnerabilities,code_smells,security_hotspots,coverage,duplicated_lines_density"
-
+      
+          # ONLY metrics that actually exist in your project
+          METRICS="bugs,vulnerabilities,code_smells,security_hotspots,duplicated_lines_density"
+          
           API_URL="${SONAR_HOST_URL}/api/measures/component?component=${PROJECT_KEY}&metricKeys=${METRICS}"
-
+      
           echo "Fetching results from: $API_URL"
-
-          # NOTE: no -u, no token => anonymous access (project is public)
+      
           curl "$API_URL" -o sonar-report.json
-
+      
           echo "----- RAW API RESPONSE -----"
           cat sonar-report.json
           echo "----------------------------"
-
+      
           echo "----- SonarQube Report -----" > sonar-report.txt
           echo "Project: $PROJECT_KEY" >> sonar-report.txt
           echo "Generated on: $(date)" >> sonar-report.txt
           echo "" >> sonar-report.txt
-
+      
           jq -r '.component.measures // [] | .[] | "\(.metric): \(.value)"' sonar-report.json >> sonar-report.txt
 
       # -----------------------------
