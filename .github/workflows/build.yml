@@ -33,7 +33,7 @@ jobs:
         run: |
           echo "Project key from env: $PROJECT_KEY"
       
-          METRICS="bugs,vulnerabilities,code_smells,ncloc,reliability_rating,security_rating,sqale_rating"
+          METRICS="bugs"
           
           API_URL="${SONAR_HOST_URL}/api/measures/component?component=${PROJECT_KEY}&metricKeys=${METRICS}"
       
@@ -46,6 +46,7 @@ jobs:
           echo "Generated on: $(date)" >> sonar-report.txt
           echo "" >> sonar-report.txt
       
+          # NULL-safe jq: avoid "Cannot iterate over null"
           jq -r '.component.measures // [] | .[] | "\(.metric): \(.value)"' sonar-report.json >> sonar-report.txt
 
       # Generate a reusable report
@@ -60,7 +61,7 @@ jobs:
       # Upload the report to S3 bucket
       - name: Upload Report to S3
         run: |
-          aws s3 cp scan-report-${{ github.run_id }}.txt s3://${{ secrets.S3_BUCKET_NAME }}/reports/
+          aws s3 cp sonar-report.txt s3://${{ secrets.S3_BUCKET_NAME }}/reports/sonar-report-${{ github.run_id }}.txt
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
